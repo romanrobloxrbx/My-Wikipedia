@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="My Wikipedia — открытая энциклопедия, которую можно читать и дополнять.">
+  <title>My Wikipedia — свободная энциклопедия</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <header class="topbar">
+    <a class="brand" href="#/" aria-label="My Wikipedia — главная">
+      <span class="brand-mark" aria-hidden="true">W</span>
+      <span><strong>My Wikipedia</strong><small>Свободная энциклопедия</small></span>
+    </a>
+    <form id="search-form" class="search" role="search">
+      <label class="visually-hidden" for="search-input">Поиск по энциклопедии</label>
+      <input id="search-input" name="q" type="search" placeholder="Поиск по My Wikipedia…" autocomplete="off">
+      <button type="submit">Найти</button>
+    </form>
+    <nav class="account-nav" aria-label="Учётная запись">
+      <a href="#/editor">Создать статью</a>
+      <a class="button button-small" href="#/login" id="account-link">Войти</a>
+    </nav>
+  </header>
+  <div class="page-layout">
+    <aside class="sidebar" aria-label="Основная навигация">
+      <p class="nav-heading">Навигация</p>
+      <a href="#/" class="nav-link">⌂ <span>Главная</span></a>
+      <a href="#/search" class="nav-link">⌕ <span>Все статьи</span></a>
+      <a href="#/categories" class="nav-link">▦ <span>Категории</span></a>
+      <a href="#/editor" class="nav-link">＋ <span>Создать статью</span></a>
+      <a href="#/history" class="nav-link">◷ <span>История изменений</span></a>
+      <div class="sidebar-note"><strong>Знания для всех</strong><p>Читайте, изучайте и помогайте делать энциклопедию лучше.</p></div>
+    </aside>
+    <main id="main" tabindex="-1">
+      <div id="app" aria-live="polite"><div class="loading">Загружаем энциклопедию…</div></div>
+      <footer class="site-footer"><span>My Wikipedia</span><span>Учись. Делись. Открывай.</span></footer>
+    </main>
+  </div>
+  <noscript><p class="noscript">Для работы сайта необходимо включить JavaScript.</p></noscript>
+</body>
+</html>
