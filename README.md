@@ -1,35 +1,33 @@
 # My Wikipedia
 
-A responsive, browser-based community encyclopedia built with Flask, HTML, and CSS. Visitors can browse and search articles; registered users can write and edit; administrators can manage roles and restore previous revisions.
+My Wikipedia — сайт-энциклопедия на **HTML, CSS и обычном JavaScript**. Python, Flask, сборщик и установка npm-пакетов для статической версии не нужны.
 
-## Run locally
+## Запуск
 
-1. Install Python 3.10 or newer.
-2. Create and activate a virtual environment.
-3. Install dependencies: `pip install -r requirements.txt`
-4. Initialize sample articles: `flask --app app init-db`
-5. Start the website: `flask --app app run --debug`
-6. Open the local address printed by Flask (normally `http://127.0.0.1:5000`).
+1. Откройте репозиторий и скачайте проект либо клонируйте его.
+2. Откройте `index.html` в современном браузере. Для локальной разработки можно запустить любой статический HTTP-сервер.
+3. Чтобы опубликовать сайт, включите GitHub Pages в настройках репозитория: **Settings → Pages → Deploy from a branch**, выберите ветку `main` и папку `/(root)`.
 
-You can also run `python app.py`; it creates database tables automatically, but use the CLI command above to add sample articles.
+## Возможности
 
-## Configuration
+- Адаптивная главная страница и навигация.
+- Поиск по названиям, описаниям, категориям и тексту статей.
+- Категории и страницы отдельных статей.
+- Создание и редактирование статей.
+- Локальная история изменений.
+- Демонстрационная регистрация и вход.
+- Данные хранятся в `localStorage` браузера.
 
-- `SECRET_KEY`: set a long random secret before deployment.
-- `DATABASE_URL`: optional SQLAlchemy database URL; defaults to SQLite.
-- `FLASK_DEBUG`: set to `1` only for local development.
+## Важно: демо-режим и общая энциклопедия
 
-## Current MVP
+Эта версия — работающий статический прототип. Статьи, история и демо-пользователи сохраняются только в текущем браузере и на текущем устройстве. Демо-авторизация не предназначена для реальных паролей и не обеспечивает безопасность или синхронизацию между пользователями.
 
-- Responsive home page, site-wide search, subject categories, article pages
-- Account registration and sign-in with password hashing
-- Registered-user article creation and editing
-- Immutable revision history and admin rollback
-- Admin dashboard, role management, and moderation log
-- Source/attribution model for future references and imports
+Чтобы сделать публичную энциклопедию с настоящими аккаунтами, общей базой статей, правами доступа и надёжной историей изменений, подключите backend, например Supabase (Auth + PostgreSQL + Row Level Security), и настройте политики доступа. В клиентском коде допустим только публичный anon/publishable key с правильно настроенными RLS-политиками; **никогда не размещайте service-role/secret key в браузере или GitHub**.
 
-## Important production work
+## Файлы
 
-This repository is an MVP, not yet a production-ready public encyclopedia. Before deployment, add CSRF protection to every state-changing form, email verification and password reset, login and editing rate limits, secure cookie settings, database migrations, robust Markdown rendering and sanitization, a safe first-admin bootstrap command, tests, backups, and a licensed content importer. Set `SECRET_KEY` securely and disable debug mode. Do not import Wikipedia or other content without following the source's license and attribution requirements.
+- `index.html` — структура сайта.
+- `style.css` — стили и адаптивная вёрстка.
+- `app.js` — навигация, поиск, статьи, редактор, история и демо-аккаунты.
 
-The first registered account is **not** automatically an administrator. Promote an account only through a secure, trusted database or deployment operation.
+Проект не использует Python.
