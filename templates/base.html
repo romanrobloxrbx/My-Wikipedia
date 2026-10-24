@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>{% block title %}My Wikipedia{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">W</span><span>My <strong>Wikipedia</strong><small>The open knowledge library</small></span></a>
+  <form class="header-search" action="{{ url_for('search') }}" method="get"><span aria-hidden="true">⌕</span><input name="q" value="{{ request.args.get('q','') }}" placeholder="Search the encyclopedia…" aria-label="Search articles"><button type="submit">Search</button></form>
+  <nav class="header-nav">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('new_article') }}">Write an article</a>
+      {% if current_user.role == 'admin' %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
+      <span class="user-chip">{{ current_user.username }}</span>
+      <form action="{{ url_for('logout') }}" method="post"><button class="link-button" type="submit">Sign out</button></form>
+    {% else %}
+      <a href="{{ url_for('login') }}">Sign in</a><a class="nav-cta" href="{{ url_for('register') }}">Create account</a>
+    {% endif %}
+  </nav>
+</header>
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-wrap">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<main>{% block content %}{% endblock %}</main>
+<footer class="site-footer"><div class="footer-inner"><a class="brand footer-brand" href="{{ url_for('home') }}"><span class="brand-mark">W</span><span>My <strong>Wikipedia</strong></span></a><p>Knowledge grows when we share it. Verify facts and cite reliable sources.</p><span>Independent community encyclopedia · Built for curious minds</span></div></footer>
+</body></html>
