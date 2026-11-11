@@ -5,6 +5,9 @@
   const searchForm = document.getElementById("search-form");
   const searchInput = document.getElementById("search-input");
   const accountLink = document.getElementById("account-link");
+  const SUPABASE_URL = "https://csjdbldakhxcwxgusyzj.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_6Bm5yXIxNryC7A3ZEytEoA__EO-wJpO";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
   const starterArticles = [
     {id:"internet",title:"Интернет",category:"Технологии",summary:"Глобальная система взаимосвязанных компьютерных сетей, использующая общие протоколы обмена данными.",body:"Интернет — глобальная система взаимосвязанных компьютерных сетей, которая позволяет устройствам обмениваться данными по всему миру. Он лежит в основе веб-сайтов, электронной почты, видеосвязи и многих других цифровых сервисов.\n\n## Как работает интернет\n\nУстройства обмениваются данными с помощью сетевых протоколов. Маршрутизаторы направляют пакеты данных между сетями, а система доменных имён (DNS) помогает находить нужные серверы по понятным человеку адресам.\n\n## История\n\nРазвитие интернета связано с исследовательскими сетями второй половины XX века. Всемирная паутина, созданная позднее, сделала публикацию и просмотр связанных документов доступными широкой аудитории.",updated:"2026-10-20",author:"Команда My Wikipedia"},
@@ -20,12 +23,13 @@
       const saved = JSON.parse(localStorage.getItem(KEY));
       if (saved && Array.isArray(saved.articles)) return saved;
     } catch (_) {}
-    return {articles:starterArticles,history:[],users:[],currentUser:null};
+    return {articles:starterArticles,history:[],currentUser:null};
   }
   let state = loadState();
   if (!Array.isArray(state.history)) state.history = [];
-  if (!Array.isArray(state.users)) state.users = [];
-  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+  state.currentUser = null;
+  // Only article content and history are stored locally; account data stays in Supabase.
+  function save() { localStorage.setItem(KEY, JSON.stringify({articles:state.articles,history:state.history})); }
   function escapeHtml(value="") { return String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch])); }
   function slug(value) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9а-яё]+/gi,"-").replace(/^-|-$/g,"").slice(0,70); }
   function link(path,label,cls="") { return '<a class="'+cls+'" href="#/'+path+'">'+label+'</a>'; }
@@ -77,23 +81,39 @@
     const history=state.history.filter(h=>!id||h.id===id);
     app.innerHTML='<h1>'+(id?'История статьи':'История изменений')+'</h1><p class="meta">Записи об изменениях, сделанных в этом браузере.</p>'+(history.length?history.map(h=>'<div class="history-item"><strong>'+escapeHtml(h.title)+' — '+escapeHtml(h.action)+'</strong><span class="meta">'+escapeHtml(new Date(h.date).toLocaleString())+' · '+escapeHtml(h.author)+'</span><div>'+link('article/'+encodeURIComponent(h.id),'Открыть статью')+'</div></div>').join(""):'<div class="empty-state">Пока нет сохранённых изменений. Создайте или отредактируйте статью, чтобы увидеть историю.</div>');
   }
+  async function loadProfile(session) {
+    if (!session?.user) { state.currentUser = null; return; }
+    const { data, error } = await supabaseClient.from("profiles")
+      .select("id, display_name, email, is_owner, created_at").eq("id", session.user.id).single();
+    if (error) {
+      console.error("Profile load failed:", error);
+      state.currentUser = {id:session.user.id,name:session.user.user_metadata?.display_name||session.user.email?.split("@")[0]||"User",email:session.user.email||"",is_owner:false};
+      return;
+    }
+    state.currentUser = {id:data.id,name:data.display_name,email:data.email,is_owner:data.is_owner,created_at:data.created_at};
+  }
   function renderLogin(register=false) {
-    app.innerHTML='<section class="form-card"><span class="eyebrow">My Wikipedia</span><h1>'+(register?'Создать демо-аккаунт':'Войти')+'</h1><div class="notice warning">Это демонстрационная авторизация только для данного браузера, а не защищённый аккаунт. Не используйте настоящий пароль.</div><form id="auth-form">'+(register?'<div class="field"><label for="name">Имя пользователя *</label><input id="name" name="name" required maxlength="50" autocomplete="nickname"></div>':'')+'<div class="field"><label for="email">Электронная почта *</label><input id="email" name="email" type="email" required autocomplete="email"></div><div class="field"><label for="password">Пароль *</label><input id="password" name="password" type="password" required minlength="4" autocomplete="'+(register?'new-password':'current-password')+'"></div><div id="auth-error" class="help" role="alert"></div><div class="form-actions"><button class="button" type="submit">'+(register?'Создать демо-аккаунт':'Войти')+'</button></div></form><p>'+(register?'Уже есть демо-аккаунт? '+link('login','Войти'):'Нет демо-аккаунта? '+link('register','Зарегистрироваться'))+'</p></section>';
-    document.getElementById("auth-form").addEventListener("submit",event=>{
-      event.preventDefault();const fd=new FormData(event.currentTarget);const email=String(fd.get("email")).trim().toLowerCase();const password=String(fd.get("password"));const error=document.getElementById("auth-error");
-      if(register){if(state.users.some(u=>u.email===email)){error.textContent="Этот email уже зарегистрирован в демо-режиме.";return;}state.users.push({email,name:String(fd.get("name")).trim(),password});state.currentUser={email,name:String(fd.get("name")).trim(),role:"user"};}
-      else{const user=state.users.find(u=>u.email===email&&u.password===password);if(!user){error.textContent="Демо-аккаунт не найден или пароль неверный. Зарегистрируйтесь сначала.";return;}state.currentUser={email:user.email,name:user.name,role:"user"};}
-      save();updateAccountLink();location.hash="#/";
+    app.innerHTML='<section class="form-card"><span class="eyebrow">My Wikipedia</span><h1>'+(register?'Создать аккаунт':'Войти')+'</h1><p class="meta">Защищённая авторизация Supabase. Пароли не хранятся сайтом.</p><form id="auth-form">'+(register?'<div class="field"><label for="name">Имя пользователя *</label><input id="name" name="name" required maxlength="50" autocomplete="nickname"></div>':'')+'<div class="field"><label for="email">Электронная почта *</label><input id="email" name="email" type="email" required autocomplete="email"></div><div class="field"><label for="password">Пароль *</label><input id="password" name="password" type="password" required minlength="8" autocomplete="'+(register?'new-password':'current-password')+'"></div><div id="auth-error" class="help" role="alert"></div><div class="form-actions"><button class="button" type="submit">'+(register?'Зарегистрироваться':'Войти')+'</button></div></form><p>'+(register?'Уже есть аккаунт? '+link('login','Войти'):'Нет аккаунта? '+link('register','Зарегистрироваться'))+'</p></section>';
+    document.getElementById("auth-form").addEventListener("submit",async event=>{
+      event.preventDefault();const form=event.currentTarget;const fd=new FormData(form);const email=String(fd.get("email")).trim().toLowerCase();const password=String(fd.get("password"));const box=document.getElementById("auth-error");const submit=form.querySelector('button[type="submit"]');submit.disabled=true;box.textContent="Подождите…";
+      try{
+        let result;
+        if(register){result=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:String(fd.get("name")).trim()}}});if(result.error)throw result.error;if(!result.data.session){box.textContent="Аккаунт создан. Проверьте почту и подтвердите адрес, затем войдите.";submit.disabled=false;return;}}
+        else{result=await supabaseClient.auth.signInWithPassword({email,password});if(result.error)throw result.error;}
+        await loadProfile(result.data.session);updateAccountLink();location.hash="#/profile";
+      }catch(error){box.textContent=error.message||"Не удалось выполнить вход.";submit.disabled=false;}
     });
   }
-  function updateAccountLink() {
-    if(state.currentUser){accountLink.textContent=state.currentUser.name||state.currentUser.email;accountLink.href="#/profile";accountLink.title="Открыть демо-профиль";}
-    else{accountLink.textContent="Войти";accountLink.href="#/login";}
+  function updateAccountLink(){
+    if(state.currentUser){accountLink.textContent=state.currentUser.name||state.currentUser.email;accountLink.href="#/profile";accountLink.title="Открыть профиль";}
+    else{accountLink.textContent="Войти";accountLink.href="#/login";accountLink.title="Войти в аккаунт";}
   }
-  function renderProfile() {
+  function renderProfile(){
     if(!state.currentUser){location.hash="#/login";return;}
-    app.innerHTML='<section class="form-card"><span class="eyebrow">Личный кабинет</span><h1>Привет, '+escapeHtml(state.currentUser.name||state.currentUser.email)+'!</h1><p>Вы вошли в локальный демо-режим. Ваш профиль и изменения не синхронизируются с другими пользователями.</p><p><strong>Email:</strong> '+escapeHtml(state.currentUser.email)+'</p><button class="button" id="logout">Выйти</button></section>';
-    document.getElementById("logout").addEventListener("click",()=>{state.currentUser=null;save();updateAccountLink();location.hash="#/";});
+    const user=state.currentUser;
+    app.innerHTML='<section class="form-card"><span class="eyebrow">Личный кабинет</span><h1>Привет, '+escapeHtml(user.name)+'!</h1>'+(user.is_owner?'<p><span class="tag owner-badge">★ OWNER</span></p>':'')+'<p><strong>Email:</strong> '+escapeHtml(user.email)+'</p><form id="profile-form"><div class="field"><label for="profile-name">Имя пользователя</label><input id="profile-name" name="display_name" required maxlength="50" value="'+escapeHtml(user.name)+'"></div><div id="profile-message" class="help" role="status"></div><div class="form-actions"><button class="button" type="submit">Сохранить профиль</button><button class="button secondary" id="logout" type="button">Выйти</button></div></form></section>';
+    document.getElementById("profile-form").addEventListener("submit",async event=>{event.preventDefault();const displayName=String(new FormData(event.currentTarget).get("display_name")).trim();const msg=document.getElementById("profile-message");const {data,error}=await supabaseClient.from("profiles").update({display_name:displayName}).eq("id",user.id).select("display_name").single();if(error){msg.textContent=error.message;return;}state.currentUser.name=data.display_name;updateAccountLink();renderProfile();});
+    document.getElementById("logout").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return;}state.currentUser=null;updateAccountLink();location.hash="#/";});
   }
   function render() {
     const raw=decodeURIComponent(location.hash.slice(1)||"/");
@@ -114,6 +134,7 @@
   }
   searchForm.addEventListener("submit",event=>{event.preventDefault();location.hash="#/search/"+encodeURIComponent(searchInput.value.trim());});
   window.addEventListener("hashchange",render);
+  save();
   if(!location.hash)location.hash="#/";
-  render();
+  (async()=>{const {data}=await supabaseClient.auth.getSession();await loadProfile(data.session);updateAccountLink();render();supabaseClient.auth.onAuthStateChange((_event,session)=>{Promise.resolve().then(async()=>{await loadProfile(session);updateAccountLink();render();});});})();
 })();
